@@ -44,14 +44,15 @@ Uygulama bulut hesabı gerektirmez. Pet ayarları, konumu, notlar, hatırlatıc�
 
 ### Son kullanıcı kurulumu
 
-Son kullanıcıların Node.js veya Rust kurmasına gerek yoktur. Windows kurulum paketlerinden birini paylaşın:
+Son kullanıcıların Node.js veya Rust kurmasına gerek yoktur. Güncel Windows x64 kurulum paketleri doğrudan repoda bulunur:
 
-```text
-src-tauri/target/release/bundle/nsis/Connected Desktop Pets_0.3.0_x64-setup.exe
-src-tauri/target/release/bundle/msi/Connected Desktop Pets_0.3.0_x64_en-US.msi
-```
+- [Desktop Pet v0.3.0 — Windows Setup EXE](releases/v0.3.0/Desktop-Pet-0.3.0-Windows-x64-Setup.exe)
+- [Desktop Pet v0.3.0 — Windows MSI](releases/v0.3.0/Desktop-Pet-0.3.0-Windows-x64.msi)
+- [SHA-256 doğrulama değerleri](releases/v0.3.0/SHA256SUMS.txt)
 
 Normal kullanıcılar için NSIS `setup.exe`, kurumsal veya yönetilen dağıtımlar için MSI paketi daha uygundur.
+
+Bu dosyalar v0.3.0 kaynak kodundan üretilmiştir. Uykuya giriş ve uyanış sırasında metin balonu gösterilmez; kısa `zZ` göstergesi 3,5 saniye sonra kaybolur. Windows sistem tepsisi ikonu pakete dahildir.
 
 > [!NOTE]
 > Kurulum paketi kod imzalama sertifikasıyla imzalanmadıysa Windows SmartScreen “Bilinmeyen yayıncı” uyarısı gösterebilir.
@@ -157,14 +158,15 @@ No cloud account is required. Pet settings, position, notes, reminders, alarms a
 
 ### Installing for end users
 
-End users do not need Node.js or Rust. Share one of the generated Windows installers:
+End users do not need Node.js or Rust. Current Windows x64 installers are available directly in the repository:
 
-```text
-src-tauri/target/release/bundle/nsis/Connected Desktop Pets_0.3.0_x64-setup.exe
-src-tauri/target/release/bundle/msi/Connected Desktop Pets_0.3.0_x64_en-US.msi
-```
+- [Desktop Pet v0.3.0 — Windows Setup EXE](releases/v0.3.0/Desktop-Pet-0.3.0-Windows-x64-Setup.exe)
+- [Desktop Pet v0.3.0 — Windows MSI](releases/v0.3.0/Desktop-Pet-0.3.0-Windows-x64.msi)
+- [SHA-256 checksums](releases/v0.3.0/SHA256SUMS.txt)
 
 The NSIS `setup.exe` is the simplest choice for most users. The MSI package is better suited to managed or enterprise deployment.
+
+These files were built from the v0.3.0 source. Sleep and wake actions do not display text bubbles, the brief `zZ` indicator disappears after 3.5 seconds, and the Windows system tray icon is included.
 
 > [!NOTE]
 > Windows SmartScreen may show an “Unknown publisher” warning when the installer has not been signed with a code-signing certificate.

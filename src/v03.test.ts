@@ -6,6 +6,7 @@ import { DigitalPetBrain } from './petBrain';
 import { createBody, stepPhysics } from './physics';
 import { PET_PIXEL_SIZE, PET_WINDOW_SIZE } from './petCatalog';
 import { collectDueEvents } from './scheduler';
+import { resolvePassiveSpeech, SLEEP_INDICATOR_DURATION_MS } from './speechIndicator';
 import { resolvePetSpriteFrame, resolveSpriteFrame, usesDedicatedCatSleepSprite } from './spriteRenderer';
 import { normalizePetData, resolveOrganizerItems } from './storage';
 import type { AlarmItem, Bounds, ReminderItem } from './types';
@@ -154,6 +155,14 @@ describe('throw physics reactions', () => {
 });
 
 describe('behavior and sprite mapping', () => {
+  it('shows zZ for only three and a half seconds without wake text', () => {
+    const startedAt = 10_000;
+    const until = startedAt + SLEEP_INDICATOR_DURATION_MS;
+    expect(resolvePassiveSpeech('SLEEPING', startedAt, until)).toBe('zZ');
+    expect(resolvePassiveSpeech('SLEEPING', startedAt + 3_499, until)).toBe('zZ');
+    expect(resolvePassiveSpeech('SLEEPING', startedAt + 3_500, until)).toBe('');
+    expect(resolvePassiveSpeech('STRETCHING', startedAt + 3_501, 0)).toBe('');
+  });
   it('sleeps after five idle minutes and stretches when awakened', () => {
     const brain = new DigitalPetBrain({ energy: 80, social: 70, fun: 70, curiosity: 70, comfort: 80 }, { playfulness: 60, sociability: 60, curiosity: 60, calmness: 60 }, () => .9);
     expect(brain.tick(16, { now: new Date('2026-08-22T12:00:00Z'), userIdleMs: 300_000, cursorDistance: 999, lookDirection: null, isMoving: false }).state).toBe('SLEEPING');

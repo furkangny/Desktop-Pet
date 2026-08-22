@@ -299,7 +299,10 @@ fn main() {
             let mute = MenuItemBuilder::with_id("mute", "Sesleri kapat").build(app)?;
             let quit = MenuItemBuilder::with_id("quit", "Çıkış").build(app)?;
             let menu = MenuBuilder::new(app).items(&[&show_pet, &hide_pet, &manager, &pause, &mute, &quit]).build()?;
+            let tray_icon = app.default_window_icon().expect("configured application icon is missing").clone();
             TrayIconBuilder::with_id("pet-tray")
+                .icon(tray_icon)
+                .tooltip("Masaüstü Dostum")
                 .menu(&menu)
                 .on_menu_event(|app, event| match event.id.as_ref() {
                     "show-pet" => { let _ = update_hidden_state(app, false); if let Some(window) = app.get_webview_window("main") { let _ = window.show(); } }

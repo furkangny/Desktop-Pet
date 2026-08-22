@@ -13,6 +13,7 @@ import { PET_WINDOW_SIZE } from './petCatalog';
 import { initializePopover } from './popover';
 import { createBody, isBodySettled, stepPhysics } from './physics';
 import { checkDueEvents } from './scheduler';
+import { resolvePassiveSpeech, SLEEP_INDICATOR_DURATION_MS } from './speechIndicator';
 import { SpriteRenderer } from './spriteRenderer';
 import { DATA_CHANNEL, acceptRemotePetData, acknowledgeOrganizerItem, initializeStorage, loadPetData, savePosition, saveSettings, setPetHidden, syncFromNativeStore, updatePetData } from './storage';
 import type { BubbleVisibility, DataChannelMessage, DueEvent, PetAction, PetSettings, PetSnapshot, Vector2 } from './types';
@@ -50,6 +51,7 @@ const runPet = async (): Promise<void> => {
   let undoPin: { settings: PetSettings; home: Vector2 | null } | null = null;
   let undoPinTimer: number | null = null;
   let reactionTimer: number | null = null; let lastStepIndex = -1;
+  let sleepIndicatorUntil = 0;
   let bubbleSequence = 0; let activeBubbleId: string | null = null; let lastBubbleFollowAt = 0; let lastBubbleAnchor: Vector2 | null = null;
   let drag: null | { pointerId: number; offset: Vector2; last: Vector2; lastAt: number; startedAt: number; velocity: Vector2; moved: boolean; totalDx: number; totalDy: number; reversals: number; peakSpeed: number; lastDx: number; wasSleeping: boolean } = null;
   let lastSnapshotState = brain.snapshot.state;
@@ -106,13 +108,15 @@ const runPet = async (): Promise<void> => {
   const applySnapshot = (snapshot: PetSnapshot, now: number): void => {
     pet.dataset.state = snapshot.state.toLowerCase(); pet.dataset.direction = snapshot.direction === 1 ? 'right' : 'left'; renderer.setWalkDistance(movement.travelDistance); renderer.setState(snapshot.state, snapshot.direction, snapshot.lookDirection); renderer.render(now);
     if (snapshot.state !== lastSnapshotState) {
+      if (snapshot.state === 'SLEEPING') sleepIndicatorUntil = now + SLEEP_INDICATOR_DURATION_MS;
+      else if (lastSnapshotState === 'SLEEPING') sleepIndicatorUntil = 0;
       if (snapshot.state === 'GROOMING') audio.playReaction('happy', settings.petId);
       else if (snapshot.state === 'TIRED') audio.playReaction('sleep', settings.petId);
       else if (snapshot.state === 'PLAYING') audio.playReaction('happy', settings.petId);
       else if (snapshot.state === 'ANGRY') audio.playReaction('annoyed', settings.petId);
       lastSnapshotState = snapshot.state;
     }
-    if (now >= speechUntil) speech.textContent = snapshot.state === 'SLEEPING' ? 'zZ' : snapshot.state === 'CURIOUS' ? '?' : snapshot.state === 'ALERTING' ? '!' : '';
+    if (now >= speechUntil) speech.textContent = resolvePassiveSpeech(snapshot.state, now, sleepIndicatorUntil);
   };
   const lookDirection = (): { distance: number; direction: number } => {
     const center = { x: position.x + desktop.getSize() / 2, y: position.y + desktop.getSize() / 2 };
@@ -147,7 +151,7 @@ const runPet = async (): Promise<void> => {
         const nextMode = settings.movementMode === 'pinned' ? 'hybrid' : 'pinned'; settings = { ...settings, movementMode: nextMode, pinnedCorner: nextMode === 'pinned' ? settings.pinnedCorner : null }; await saveSettings(settings); movement.setHome(position); showSpeech(nextMode === 'pinned' ? 'Buradayım.' : 'Kısa turlara hazırım.'); break;
       }
       case 'dance': brain.activity('dance'); recordInteraction('dance'); audio.playInteraction('dance', settings.petId); break;
-      case 'sleep': brain.sleep(); audio.playReaction('sleep', settings.petId); showSpeech('Biraz dinleniyorum.', 2200, 'quiet', undefined, undefined, false); break;
+      case 'sleep': brain.sleep(); audio.playReaction('sleep', settings.petId); speech.textContent = ''; speechUntil = 0; break;
       case 'focus': brain.focus(); audio.playReaction('focus', settings.petId); showSpeech('Sessizce yanındayım.', 2200, 'quiet', undefined, undefined, false); break;
       case 'add-note': case 'open-manager': await openManager(); break;
       case 'hide-pet': {
@@ -192,7 +196,7 @@ const runPet = async (): Promise<void> => {
       if (reactionTimer !== null) clearTimeout(reactionTimer); reactionTimer = window.setTimeout(() => { delete pet.dataset.reaction; reactionTimer = null; }, 3_600);
       showSpeech('Dünya dönüyor… biraz yavaş!', 3_400, 'quiet', undefined, undefined, false);
     }
-    else if (currentDrag.wasSleeping) { brain.wake(now); recordInteraction('wake'); audio.playReaction('wake', settings.petId); showSpeech('Uyanıyorum…', 2200, 'neutral', undefined, undefined, false); }
+    else if (currentDrag.wasSleeping) { brain.wake(now); recordInteraction('wake'); audio.playReaction('wake', settings.petId); speech.textContent = ''; speechUntil = 0; }
     else if (gesture === 'pet') { brain.pet(now); recordInteraction('pet'); audio.playInteraction('pet', settings.petId); showSpeech('Bunu sevdim.', 2200, 'positive', undefined, undefined, false); }
     else if (!currentDrag.moved || speed < 35) { clickTimes = [...clickTimes.filter((time) => now - time < 900), now]; if (clickTimes.length >= 4) { brain.rapidClick(now); audio.playReaction('startle', settings.petId); } else if (clickTimes.length >= 2 && now - clickTimes.at(-2)! < 360) { brain.doubleClick(now); audio.playReaction('happy', settings.petId); } else { brain.click(now); audio.playInteraction('click', settings.petId); } recordInteraction('click'); }
     else { body.velocity = { ...currentDrag.velocity }; throwing = gesture === 'throw'; brain.releaseWithThrow(speed, now); }
