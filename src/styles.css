@@ -20,7 +20,12 @@ button { cursor: pointer; }
 [hidden] { display: none !important; }
 
 #app { position: relative; width: 100%; height: 100%; display: grid; place-items: center; user-select: none; }
-#pet { width: 100%; height: 100%; padding: 0; border: 0; display: grid; place-items: center; background: transparent; cursor: grab; filter: drop-shadow(0 8px 7px rgb(0 0 0 / .24)); transform-origin: 50% 82%; rotate: var(--motion-angle, 0deg); -webkit-app-region: no-drag; }
+#pet { width: 100%; height: 100%; padding: 0; border: 0; display: grid; place-items: center; background: transparent; cursor: grab; transform-origin: 50% 82%; transform: perspective(520px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)); rotate: var(--motion-angle, 0deg); scale: var(--depth-scale, 1); translate: 0 var(--spatial-lift, 0); transition: scale .24s ease-out, translate .16s ease-out, rotate .16s ease-out, transform .16s ease-out; transform-style: preserve-3d; -webkit-app-region: no-drag; }
+#pet::before { content: ''; position: absolute; z-index: -1; left: 25%; right: 25%; bottom: 13%; height: 9%; border-radius: 50%; background: rgb(0 0 0 / var(--shadow-opacity, .24)); filter: blur(4px); scale: var(--shadow-scale, 1) .72; transform-origin: 50% 50%; transition: scale .2s ease-out, opacity .2s ease-out; pointer-events: none; }
+#pet[data-airborne='true']::before { filter: blur(6px); }
+#pet[data-locomotion='hovering'] #pet-sprite { filter: drop-shadow(0 0 7px rgb(110 220 255 / .28)); }
+#pet[data-locomotion='leaping'] #pet-sprite { transform-origin: 50% 72%; }
+#pet[data-locomotion='climbing'] #pet-sprite { transform-origin: 50% 62%; filter: drop-shadow(0 5px 5px rgb(0 0 0 / .2)); }
 #pet:focus { outline: none; }
 #pet:focus-visible { outline: 2px solid rgb(143 227 196 / .55); outline-offset: -10px; border-radius: 999px; }
 #pet:active { cursor: grabbing; }

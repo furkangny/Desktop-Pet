@@ -74,24 +74,43 @@ describe('movement and pinning', () => {
     for (let index = 0; index < 1_400; index += 1) { position = movement.update(position, bounds, 'hybrid', 'normal', false, .05, now); now += 50; }
     expect(Math.hypot(position.x - home.x, position.y - home.y)).toBeLessThan(6);
   });
-  it('drops to the desktop floor, then walks horizontally through several destinations', () => {
+  it('uses the full desktop and changes simulated depth while roaming', () => {
     const seeded = (seed: number): (() => number) => { let s = seed; return () => { s = (s * 1103515245 + 12345) & 0x7fffffff; return s / 0x7fffffff; }; };
     const movement = new MovementController(seeded(7)); const start = { x: 120, y: 120 };
     movement.setHome(start); movement.reset(0);
-    let position = { ...start }; let now = 0; let movedEarly = false; let movedX = false; let reachedFloor = false; let floatedAfterFloor = false;
+    let position = { ...start }; let now = 0; let movedEarly = false; let movedX = false; let movedY = false;
+    let minY = position.y; let maxY = position.y; let minDepth = movement.spatialPose.depth; let maxDepth = minDepth;
     const targets = new Set<string>();
     for (let index = 0; index < 1_400; index += 1) {
-      const next = movement.update(position, bounds, 'roam', 'normal', false, .05, now);
+      const next = movement.update(position, bounds, 'roam', 'normal', false, .05, now, 'tiny-astronaut');
       if (Math.abs(next.x - position.x) > 0.5) movedX = true;
-      if (Math.abs(next.y - bounds.maxY) < .01) reachedFloor = true;
-      if (reachedFloor && Math.abs(next.y - bounds.maxY) > .01) floatedAfterFloor = true;
+      if (Math.abs(next.y - position.y) > 0.5) movedY = true;
+      minY = Math.min(minY, next.y); maxY = Math.max(maxY, next.y);
+      minDepth = Math.min(minDepth, movement.spatialPose.depth); maxDepth = Math.max(maxDepth, movement.spatialPose.depth);
       if (now <= 8_000 && Math.hypot(next.x - start.x, next.y - start.y) > 12) movedEarly = true;
       const target = movement.debugTarget(); if (target) targets.add(`${target.x},${target.y}`);
       position = next; now += 50;
     }
     expect(movedEarly).toBe(true);
-    expect(movedX).toBe(true); expect(reachedFloor).toBe(true); expect(floatedAfterFloor).toBe(false);
+    expect(movedX).toBe(true); expect(movedY).toBe(true);
+    expect(maxY - minY).toBeGreaterThan(180);
+    expect(maxDepth - minDepth).toBeGreaterThan(.2);
     expect(targets.size).toBeGreaterThanOrEqual(3);
+  });
+  it('gives the cat grounded, perch and climbing routes instead of air-walking', () => {
+    const sequence = [.1, .8, .3, .6, .55, .2, .9, .4, .7, .95]; let index = 0;
+    const movement = new MovementController(() => sequence[index++ % sequence.length]);
+    movement.setHome({ x: 400, y: bounds.maxY }); movement.reset(0);
+    let position = { x: 400, y: bounds.maxY }; let now = 2_000; let walkedInAir = false; const phases = new Set<string>();
+    for (let step = 0; step < 2_400; step += 1) {
+      position = movement.update(position, bounds, 'roam', 'active', false, .05, now, 'pixel-cat');
+      if (movement.locomotionPhase === 'walking' && position.y < bounds.maxY - 30) walkedInAir = true;
+      phases.add(movement.locomotionPhase); now += 50;
+    }
+    expect(walkedInAir).toBe(false);
+    expect(phases.has('leaping') || phases.has('climbing')).toBe(true);
+    expect(position.x).toBeGreaterThanOrEqual(bounds.minX);
+    expect(position.y).toBeLessThanOrEqual(bounds.maxY);
   });
   it('freezes roam locomotion when reduced motion is enabled', () => {
     const movement = new MovementController(() => 0.37); let position = { x: 200, y: 200 };

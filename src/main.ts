@@ -90,7 +90,7 @@ const runPet = async (): Promise<void> => {
     showSpeech(line, 5_600, 'positive');
   };
   const applySettings = async (incoming?: unknown, announce = false): Promise<void> => {
-    const previousMode = settings.movementMode; const previousReduced = settings.reducedMotion;
+    const previousMode = settings.movementMode; const previousReduced = settings.reducedMotion; const previousPetId = settings.petId;
     data = incoming ? acceptRemotePetData(incoming) : desktop.isNative() ? await syncFromNativeStore() : loadPetData();
     const previousSize = settings.petSize; settings = data.settings; audio.update(settings.audio);
     movement.setHome(data.homePosition ?? position);
@@ -102,11 +102,14 @@ const runPet = async (): Promise<void> => {
       if (previousSize !== settings.petSize) await desktop.resize(PET_WINDOW_SIZE[settings.petSize]);
     }
     const modeChanged = settings.movementMode !== previousMode; const reducedChanged = settings.reducedMotion !== previousReduced;
-    if (modeChanged) movement.reset();
+    if (modeChanged || settings.petId !== previousPetId) movement.reset();
     if (announce && (modeChanged || reducedChanged)) announceMovementMode();
   };
   const applySnapshot = (snapshot: PetSnapshot, now: number): void => {
-    pet.dataset.state = snapshot.state.toLowerCase(); pet.dataset.direction = snapshot.direction === 1 ? 'right' : 'left'; renderer.setWalkDistance(movement.travelDistance); renderer.setState(snapshot.state, snapshot.direction, snapshot.lookDirection); renderer.render(now);
+    const locomotion = movement.locomotionPhase;
+    const isSpatialTravel = settings.movementMode === 'roam' && (locomotion === 'leaping' || locomotion === 'climbing' || locomotion === 'hovering');
+    const visualState = isSpatialTravel && snapshot.state === 'WALKING' ? 'FALLING' : snapshot.state;
+    pet.dataset.state = snapshot.state.toLowerCase(); pet.dataset.locomotion = locomotion; pet.dataset.direction = snapshot.direction === 1 ? 'right' : 'left'; renderer.setWalkDistance(movement.travelDistance); renderer.setState(visualState, snapshot.direction, snapshot.lookDirection); renderer.render(now);
     if (snapshot.state !== lastSnapshotState) {
       if (snapshot.state === 'SLEEPING') sleepIndicatorUntil = now + SLEEP_INDICATOR_DURATION_MS;
       else if (lastSnapshotState === 'SLEEPING') sleepIndicatorUntil = 0;
@@ -277,12 +280,21 @@ const runPet = async (): Promise<void> => {
       if (result.landed && isBodySettled(body)) { throwing = false; body.velocity = { x: 0, y: 0 }; savePosition(position, true); movement.setHome(position); audio.playReaction('land', settings.petId); }
     }
     else if (!drag) {
-      const next = movement.update(position, desktop.getBounds(), settings.movementMode, settings.movementLevel, settings.reducedMotion, deltaMs / 1000, Date.now()); setPosition(next);
+      const next = movement.update(position, desktop.getBounds(), settings.movementMode, settings.movementLevel, settings.reducedMotion, deltaMs / 1000, Date.now(), settings.petId); setPosition(next);
       const target = movement.debugTarget(); if (movement.locomotionPhase === 'anticipating' && target) brain.face(target.x > position.x ? 1 : -1); else if (Math.abs(movement.velocity.x) > 5) brain.face(movement.velocity.x > 0 ? 1 : -1);
-      const stepIndex = Math.floor(movement.travelDistance / 7.5); if (movement.isMoving() && stepIndex !== lastStepIndex && stepIndex % 4 === 0) audio.playFootstep(settings.petId); lastStepIndex = stepIndex;
+      const stepIndex = Math.floor(movement.travelDistance / 7.5); if (movement.isMoving() && movement.locomotionPhase === 'walking' && stepIndex !== lastStepIndex && stepIndex % 4 === 0) audio.playFootstep(settings.petId); lastStepIndex = stepIndex;
     }
     const look = lookDirection(); const snapshot = brain.tick(deltaMs, { now: new Date(), userIdleMs: lastPresence.idleMs, cursorDistance: look.distance, lookDirection: look.direction, isMoving: movement.isMoving() || throwing });
-    pet.style.setProperty('--motion-angle', `${Math.max(-7, Math.min(7, (throwing ? body.velocity.x : movement.velocity.x) / 16))}deg`); applySnapshot(snapshot, now);
+    const spatial = movement.spatialPose;
+    pet.style.setProperty('--motion-angle', `${Math.max(-9, Math.min(9, (throwing ? body.velocity.x / 16 : spatial.bank)))}deg`);
+    pet.style.setProperty('--depth-scale', drag || throwing ? '1' : spatial.scale.toFixed(3));
+    pet.style.setProperty('--spatial-lift', drag || throwing ? '0px' : `${spatial.lift.toFixed(2)}px`);
+    pet.style.setProperty('--tilt-x', drag || throwing ? '0deg' : `${spatial.tiltX.toFixed(2)}deg`);
+    pet.style.setProperty('--tilt-y', drag || throwing ? '0deg' : `${spatial.tiltY.toFixed(2)}deg`);
+    pet.style.setProperty('--shadow-scale', (drag || throwing ? 1 : spatial.shadowScale).toFixed(3));
+    pet.style.setProperty('--shadow-opacity', (drag || throwing ? .24 : spatial.shadowOpacity).toFixed(3));
+    pet.dataset.airborne = !drag && !throwing && spatial.airborne ? 'true' : 'false';
+    applySnapshot(snapshot, now);
     if (activeBubbleId && now - lastBubbleFollowAt >= 50 && (!lastBubbleAnchor || Math.hypot(position.x - lastBubbleAnchor.x, position.y - lastBubbleAnchor.y) >= 2)) {
       lastBubbleFollowAt = now; lastBubbleAnchor = { ...position };
       void desktop.followBubble({ id: activeBubbleId, anchor: position, petSize: desktop.getSize(), workArea: desktop.getWorkArea() });
@@ -290,7 +302,7 @@ const runPet = async (): Promise<void> => {
     if (!drag && now - lastSave > 4_000) { savePosition(position); lastSave = now; }
     if (now - lastDiag > 1_000 && localStorage.getItem('petDiag') === '1') {
       lastDiag = now; const b = desktop.getBounds();
-      console.info('[petDiag]', { mode: settings.movementMode, reduced: settings.reducedMotion, bounds: b, pos: { x: Math.round(position.x), y: Math.round(position.y) }, target: movement.debugTarget(), vel: { x: Math.round(movement.velocity.x), y: Math.round(movement.velocity.y) }, moving: movement.isMoving(), throwing });
+      console.info('[petDiag]', { mode: settings.movementMode, reduced: settings.reducedMotion, bounds: b, pos: { x: Math.round(position.x), y: Math.round(position.y) }, target: movement.debugTarget(), depth: Number(spatial.depth.toFixed(2)), phase: movement.locomotionPhase, vel: { x: Math.round(movement.velocity.x), y: Math.round(movement.velocity.y) }, moving: movement.isMoving(), throwing });
     }
     requestAnimationFrame(animate);
   };

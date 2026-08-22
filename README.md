@@ -25,6 +25,8 @@ Uygulama bulut hesabı gerektirmez. Pet ayarları, konumu, notlar, hatırlatıc�
 
 - Şeffaf, çerçevesiz ve her zaman üstte kalan gerçek masaüstü penceresi
 - Sabit, hibrit ve tüm masaüstünde serbest dolaşım modları
+- Serbest modda Z derinliği, perspektif eğimi, dinamik ölçek ve temas gölgesiyle üç boyutlu dolaşım hissi
+- Kedi için zemin yürüyüşü, doğal sıçrama, tırmanma ve konma; robot ve astronot için hover/itici geçişleri
 - Doğal hızlanma, yavaşlama, yürüme ritmi, koşma ve bekleme davranışları
 - Peti tutup sürükleme, sallama ve hızla fırlatma
 - Ekran kenarlarına çarpma, sekme, savrulma ve sersemleme tepkileri
@@ -139,6 +141,8 @@ No cloud account is required. Pet settings, position, notes, reminders, alarms a
 
 - Transparent, borderless and always-on-top desktop window
 - Pinned, hybrid and full-desktop roaming modes
+- Z-depth, perspective tilt, dynamic scale and contact shadows for three-dimensional free roaming
+- Grounded walking, natural leaps, climbing and perching for the cat; hover/thruster travel for the robot and astronaut
 - Natural acceleration, deceleration, walking cadence, running and idle pauses
 - Drag, shake and throw interactions
 - Edge collisions, bouncing, inertia and dizzy reactions
