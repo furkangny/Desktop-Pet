@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="tr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Masaüstü Dostum</title>
+  </head>
+  <body>
+    <main id="app" aria-label="Masaüstü peti">
+      <button id="pet" type="button" aria-label="Masaüstü peti">
+        <span id="pet-sprite" aria-hidden="true"></span>
+        <span id="pet-effects" aria-hidden="true"><i>✦</i><i>✧</i><i>✦</i></span>
+      </button>
+      <div id="speech" aria-live="polite"></div>
+    </main>
+
+    <aside id="popover" class="popover" aria-label="Pet hızlı menüsü" hidden>
+      <header>
+        <div><span id="popover-kicker">HIZLI MENÜ</span><strong id="quick-pet-name"></strong></div>
+        <button id="popover-close" class="icon-button" type="button" aria-label="Kapat" title="Kapat">×</button>
+      </header>
+      <div id="quick-menu" class="quick-menu">
+        <button class="qm-row qm-pin" type="button" data-action="toggle-pin">
+          <svg class="qm-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-6-5.3-6-10a6 6 0 0 1 12 0c0 4.7-6 10-6 10z"/><circle cx="12" cy="11" r="2"/></svg>
+          <span data-action-label>Buraya sabitle</span>
+        </button>
+        <div class="qm-grid">
+          <button class="qm-tile" type="button" data-action="dance"><svg class="qm-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 17V4l10-1v13"/><circle cx="6" cy="17" r="3"/><circle cx="16" cy="16" r="3"/></svg><span>Dans</span></button>
+          <button class="qm-tile" type="button" data-action="sleep"><svg class="qm-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A8 8 0 1 1 11.2 3 6.3 6.3 0 0 0 21 12.8z"/></svg><span>Uyu</span></button>
+          <button class="qm-tile" type="button" data-action="focus"><svg class="qm-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/></svg><span>Odaklan</span></button>
+          <button class="qm-tile" type="button" data-action="add-note"><svg class="qm-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg><span>Not ekle</span></button>
+          <button class="qm-tile qm-hide" type="button" data-action="hide-pet"><svg class="qm-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3l18 18M10.6 10.7a2 2 0 0 0 2.7 2.7M9.9 4.2A10.8 10.8 0 0 1 21 12a11.8 11.8 0 0 1-2.2 3.1M6.6 6.7A11.6 11.6 0 0 0 3 12s3.3 6 9 6c1 0 1.9-.2 2.7-.5"/></svg><span>Gizle</span></button>
+        </div>
+        <button class="qm-row qm-manager" type="button" data-action="open-manager"><svg class="qm-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9 7 7M17 17l2.1 2.1M19.1 4.9 17 7M7 17l-2.1 2.1"/></svg><span>Kontrol merkezi</span></button>
+      </div>
+      <div id="speech-popover" class="speech-popover" role="status" hidden>
+        <span id="speech-message"></span>
+        <button id="speech-action" type="button" hidden></button>
+      </div>
+      <div id="alert-popover" class="alert-popover" hidden>
+        <p id="alert-kind"></p>
+        <h2 id="alert-title"></h2>
+        <p id="alert-details"></p>
+        <div class="alert-actions">
+          <button id="alert-done" type="button">Tamamlandı</button>
+          <button id="alert-snooze" type="button">5 dk ertele</button>
+          <button id="alert-open" type="button">Aç</button>
+        </div>
+      </div>
+    </aside>
+
+    <div id="bubble" class="bubble" data-placement="above" role="status" aria-live="polite" hidden>
+      <div class="bubble-body">
+        <span id="bubble-text"></span>
+        <button id="bubble-action" type="button" hidden></button>
+      </div>
+      <span class="bubble-tail" aria-hidden="true"></span>
+    </div>
+
+    <section id="manager" aria-label="Pet kontrol merkezi" hidden>
+      <header class="manager-header" data-tauri-drag-region>
+        <div><p class="eyebrow">MASAÜSTÜ DOSTUM</p><h1 id="manager-title">Dost</h1></div>
+        <button id="manager-close" class="icon-button" type="button" aria-label="Kapat" title="Kapat">×</button>
+      </header>
+      <nav class="tabs" aria-label="Kontrol merkezi bölümleri">
+        <button type="button" data-tab="notes" aria-selected="true">Notlar</button>
+        <button type="button" data-tab="reminders" aria-selected="false">Hatırlatıcı</button>
+        <button type="button" data-tab="alarms" aria-selected="false">Alarm</button>
+        <button type="button" data-tab="pet" aria-selected="false">Pet</button>
+      </nav>
+      <div id="manager-alert" role="status" hidden></div>
+      <div class="manager-content">
+        <section class="tab-panel" data-panel="notes">
+          <form id="note-form" class="organizer-form">
+            <input name="id" type="hidden" />
+            <label>Başlık<input name="title" maxlength="80" required /></label>
+            <label>Not<textarea name="body" maxlength="1000" rows="4" required></textarea></label>
+            <div class="form-actions"><button class="small-button" type="button" data-edit-cancel="note" hidden>Vazgeç</button><button class="primary-button" type="submit">Notu kaydet</button></div>
+          </form><div id="notes-list" class="item-list" aria-live="polite"></div>
+        </section>
+        <section class="tab-panel" data-panel="reminders" hidden>
+          <form id="reminder-form" class="organizer-form">
+            <input name="id" type="hidden" />
+            <label>Hatırlatma<input name="title" maxlength="80" required /></label>
+            <label>Tarih ve saat<input name="scheduledAt" type="datetime-local" required /></label>
+            <label>Detay<textarea name="details" maxlength="500" rows="3"></textarea></label>
+            <div class="form-actions"><button class="small-button" type="button" data-edit-cancel="reminder" hidden>Vazgeç</button><button class="primary-button" type="submit">Hatırlatıcı ekle</button></div>
+          </form><div id="reminders-list" class="item-list" aria-live="polite"></div>
+        </section>
+        <section class="tab-panel" data-panel="alarms" hidden>
+          <form id="alarm-form" class="organizer-form">
+            <input name="id" type="hidden" />
+            <label>Alarm adı<input name="label" maxlength="80" required /></label>
+            <label>Çalışma şekli<select name="schedule"><option value="once">Tek sefer</option><option value="daily">Her gün</option></select></label>
+            <label>Tarih ve saat<input name="scheduledAt" type="datetime-local" required /></label>
+            <div class="form-actions"><button class="small-button" type="button" data-edit-cancel="alarm" hidden>Vazgeç</button><button class="primary-button" type="submit">Alarm kur</button></div>
+          </form><div id="alarms-list" class="item-list" aria-live="polite"></div>
+        </section>
+        <section class="tab-panel" data-panel="pet" hidden>
+          <form id="pet-form" class="organizer-form pet-settings-form">
+            <div class="pet-settings-preview" aria-live="polite">
+              <span id="settings-pet-sprite" aria-hidden="true"></span>
+              <div><strong id="settings-preview-name">Tiny Robot</strong><p id="settings-preview-description"></p></div>
+            </div>
+            <label>Adı<input name="name" maxlength="32" required /></label>
+            <fieldset><legend>Karakter</legend><div class="choice-grid">
+              <label><input type="radio" name="petId" value="tiny-robot" /><span class="pet-choice robot">Tiny Robot</span></label>
+              <label><input type="radio" name="petId" value="tiny-astronaut" /><span class="pet-choice astronaut">Tiny Astronaut</span></label>
+              <label><input type="radio" name="petId" value="pixel-cat" /><span class="pet-choice cat">Pixel Cat</span></label>
+            </div></fieldset>
+            <fieldset><legend>Hareket modu</legend><div class="segmented">
+              <label><input type="radio" name="movementMode" value="pinned" /><span>Sabit</span></label>
+              <label><input type="radio" name="movementMode" value="hybrid" /><span>Hibrit</span></label>
+              <label><input type="radio" name="movementMode" value="roam" /><span>Serbest</span></label>
+            </div></fieldset>
+            <div class="form-grid"><label>Boyut<select name="petSize"><option value="tiny">Mini</option><option value="small">Küçük</option><option value="medium">Orta</option><option value="large">Büyük</option></select></label>
+              <label>Hareket yoğunluğu<select name="movementLevel"><option value="calm">Sakin</option><option value="normal">Dengeli</option><option value="active">Hareketli</option></select></label></div>
+            <label class="toggle-row"><input name="autostart" type="checkbox" />Windows açılışında başlat</label>
+            <label class="toggle-row"><input name="reducedMotion" type="checkbox" />Hızlı masaüstü hareketlerini azalt</label>
+            <label class="toggle-row"><input name="muted" type="checkbox" />Tüm sesleri kapat</label>
+            <div class="channel-grid" aria-label="Ses kanalları">
+              <label class="toggle-row"><input name="interactionEnabled" type="checkbox" />Etkileşim sesi</label>
+              <label class="toggle-row"><input name="reminderEnabled" type="checkbox" />Hatırlatıcı sesi</label>
+              <label class="toggle-row"><input name="alarmEnabled" type="checkbox" />Alarm sesi</label>
+              <label class="toggle-row"><input name="voiceEnabled" type="checkbox" />Pet sesi</label>
+            </div>
+            <div class="volume-grid">
+              <label>Ana ses <output data-volume="masterVolume"></output><input name="masterVolume" type="range" min="0" max="100" /></label>
+              <label>Etkileşim <output data-volume="interactionVolume"></output><input name="interactionVolume" type="range" min="0" max="100" /></label>
+              <label>Hatırlatıcı <output data-volume="reminderVolume"></output><input name="reminderVolume" type="range" min="0" max="100" /></label>
+              <label>Alarm <output data-volume="alarmVolume"></output><input name="alarmVolume" type="range" min="0" max="100" /></label>
+              <label>Pet sesi <output data-volume="voiceVolume"></output><input name="voiceVolume" type="range" min="0" max="100" /></label>
+            </div>
+            <label>Varsayılan erteleme<select name="snoozeMinutes"><option value="5">5 dakika</option><option value="10">10 dakika</option><option value="15">15 dakika</option></select></label>
+            <fieldset><legend>Pet komutları</legend><div class="command-grid">
+              <button class="small-button" type="button" data-pet-command="dance">Dans</button>
+              <button class="small-button" type="button" data-pet-command="sleep">Uyu</button>
+              <button class="small-button" type="button" data-pet-command="focus">Odaklan</button>
+            </div></fieldset>
+            <fieldset><legend>Ses testi</legend><div class="command-grid">
+              <button class="small-button" type="button" data-sound-test="interaction">Tıklama</button>
+              <button class="small-button" type="button" data-sound-test="reminder">Hatırlatıcı</button>
+              <button class="small-button" type="button" data-sound-test="alarm">Alarm</button>
+              <button class="small-button" type="button" data-sound-test="voice">Pet sesi</button>
+              <button class="small-button" type="button" data-sound-test="stop">Sustur</button>
+            </div></fieldset>
+            <div class="settings-actions"><button id="settings-reset" class="small-button" type="button">Değişiklikleri geri al</button><button class="primary-button" type="submit">Ayarları kaydet</button></div>
+            <p id="settings-status" class="form-status" role="status" aria-live="polite"></p>
+          </form>
+          <p class="local-note">Konum, kişilik, notlar ve zamanlayıcılar yalnızca bu bilgisayarda tutulur. Ekran içeriği okunmaz.</p>
+        </section>
+      </div>
+    </section>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

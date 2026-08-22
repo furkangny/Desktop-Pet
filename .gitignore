@@ -1,0 +1,9 @@
+node_modules/
+dist/
+src-tauri/target/
+.pet-qa/
+assets/pet-runs/
+assets/qa/
+__pycache__/
+*.py[cod]
+*.log

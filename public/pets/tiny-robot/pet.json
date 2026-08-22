@@ -1,0 +1,11 @@
+{
+  "id": "tiny-robot",
+  "displayName": "Tiny Robot",
+  "description": "Koyu grafit gövdeli, camgöbeği ekran yüzlü canlı dijital arkadaş.",
+  "spriteVersionNumber": 2,
+  "spritesheetPath": "spritesheet.webp",
+  "cellWidth": 192,
+  "cellHeight": 208,
+  "columns": 8,
+  "rows": 11
+}
