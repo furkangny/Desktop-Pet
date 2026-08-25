@@ -28,10 +28,10 @@ jobs:
 
     steps:
       - name: Check out source
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: 20
           cache: npm
@@ -83,7 +83,7 @@ jobs:
           grep -q 'arm64' "$output_dir/BINARY-ARCHITECTURES.txt"
 
       - name: Upload Universal macOS package
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: Connected-Desktop-Pets-macOS-universal
           path: macos-artifacts/*
