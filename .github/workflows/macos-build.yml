@@ -76,7 +76,13 @@ jobs:
           test -n "$dmg_path"
           ditto -c -k --sequesterRsrc --keepParent "$app_path" "$output_dir/Connected-Desktop-Pets-macOS-universal.app.zip"
           cp "$dmg_path" "$output_dir/Connected-Desktop-Pets-macOS-universal.dmg"
-          shasum -a 256 "$output_dir"/* > "$output_dir/SHA256SUMS.txt"
+          (
+            cd "$output_dir"
+            shasum -a 256 \
+              Connected-Desktop-Pets-macOS-universal.app.zip \
+              Connected-Desktop-Pets-macOS-universal.dmg \
+              > SHA256SUMS.txt
+          )
           codesign --verify --deep --strict --verbose=2 "$app_path"
           file "$app_path/Contents/MacOS/connected-desktop-pets" | tee "$output_dir/BINARY-ARCHITECTURES.txt"
           grep -q 'x86_64' "$output_dir/BINARY-ARCHITECTURES.txt"
