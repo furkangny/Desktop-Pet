@@ -24,6 +24,24 @@ struct PresenceSnapshot {
     local_hour: u32,
 }
 
+fn cursor_point(app: &tauri::AppHandle) -> Point {
+    app.cursor_position()
+        .map(|position| Point {
+            x: position.x.round() as i32,
+            y: position.y.round() as i32,
+        })
+        .unwrap_or(Point { x: 0, y: 0 })
+}
+
+#[cfg(any(target_os = "macos", test))]
+fn idle_seconds_to_ms(idle_seconds: f64) -> u32 {
+    if !idle_seconds.is_finite() || idle_seconds <= 0.0 {
+        0
+    } else {
+        (idle_seconds * 1_000.0).min(u32::MAX as f64) as u32
+    }
+}
+
 #[derive(Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 struct DueEvent {
@@ -255,27 +273,42 @@ fn scheduler_tick(app: &tauri::AppHandle) {
 
 #[cfg(windows)]
 #[tauri::command]
-fn presence_snapshot() -> PresenceSnapshot {
+fn presence_snapshot(app: tauri::AppHandle) -> PresenceSnapshot {
     use std::mem::size_of;
-    use windows_sys::Win32::Foundation::POINT;
     use windows_sys::Win32::System::SystemInformation::GetTickCount;
     use windows_sys::Win32::UI::Input::KeyboardAndMouse::{GetLastInputInfo, LASTINPUTINFO};
-    use windows_sys::Win32::UI::WindowsAndMessaging::GetCursorPos;
 
-    let mut point = POINT { x: 0, y: 0 };
     let mut input = LASTINPUTINFO { cbSize: size_of::<LASTINPUTINFO>() as u32, dwTime: 0 };
     unsafe {
-        GetCursorPos(&mut point);
         GetLastInputInfo(&mut input);
     }
     let idle_ms = unsafe { GetTickCount() }.wrapping_sub(input.dwTime);
-    PresenceSnapshot { cursor: Point { x: point.x, y: point.y }, idle_ms, local_hour: Local::now().hour() }
+    PresenceSnapshot { cursor: cursor_point(&app), idle_ms, local_hour: Local::now().hour() }
 }
 
-#[cfg(not(windows))]
+#[cfg(target_os = "macos")]
+#[link(name = "CoreGraphics", kind = "framework")]
+extern "C" {
+    fn CGEventSourceSecondsSinceLastEventType(state_id: i32, event_type: u32) -> f64;
+}
+
+#[cfg(target_os = "macos")]
+fn macos_idle_ms() -> u32 {
+    // Combined session state + any input event mirrors GetLastInputInfo on Windows.
+    let idle_seconds = unsafe { CGEventSourceSecondsSinceLastEventType(0, u32::MAX) };
+    idle_seconds_to_ms(idle_seconds)
+}
+
+#[cfg(target_os = "macos")]
 #[tauri::command]
-fn presence_snapshot() -> PresenceSnapshot {
-    PresenceSnapshot { cursor: Point { x: 0, y: 0 }, idle_ms: 0, local_hour: Local::now().hour() }
+fn presence_snapshot(app: tauri::AppHandle) -> PresenceSnapshot {
+    PresenceSnapshot { cursor: cursor_point(&app), idle_ms: macos_idle_ms(), local_hour: Local::now().hour() }
+}
+
+#[cfg(all(not(windows), not(target_os = "macos")))]
+#[tauri::command]
+fn presence_snapshot(app: tauri::AppHandle) -> PresenceSnapshot {
+    PresenceSnapshot { cursor: cursor_point(&app), idle_ms: 0, local_hour: Local::now().hour() }
 }
 
 fn main() {
@@ -292,6 +325,9 @@ fn main() {
             set_pet_hidden
         ])
         .setup(|app| {
+            #[cfg(target_os = "macos")]
+            app.handle().set_activation_policy(tauri::ActivationPolicy::Accessory)?;
+
             let show_pet = MenuItemBuilder::with_id("show-pet", "Peti göster").build(app)?;
             let hide_pet = MenuItemBuilder::with_id("hide-pet", "Peti gizle").build(app)?;
             let manager = MenuItemBuilder::with_id("manager", "Kontrol merkezi").build(app)?;
@@ -300,10 +336,11 @@ fn main() {
             let quit = MenuItemBuilder::with_id("quit", "Çıkış").build(app)?;
             let menu = MenuBuilder::new(app).items(&[&show_pet, &hide_pet, &manager, &pause, &mute, &quit]).build()?;
             let tray_icon = app.default_window_icon().expect("configured application icon is missing").clone();
-            TrayIconBuilder::with_id("pet-tray")
+            let tray_builder = TrayIconBuilder::with_id("pet-tray")
                 .icon(tray_icon)
                 .tooltip("Masaüstü Dostum")
-                .menu(&menu)
+                .menu(&menu);
+            tray_builder
                 .on_menu_event(|app, event| match event.id.as_ref() {
                     "show-pet" => { let _ = update_hidden_state(app, false); if let Some(window) = app.get_webview_window("main") { let _ = window.show(); } }
                     "hide-pet" => { if let Some(window) = app.get_webview_window("main") { let _ = window.emit("pet-action", serde_json::json!({ "action": "hide-pet" })); } }
@@ -331,6 +368,14 @@ mod tests {
 
     fn local_time(value: &str) -> DateTime<Local> {
         DateTime::parse_from_rfc3339(value).unwrap().with_timezone(&Local)
+    }
+
+    #[test]
+    fn idle_seconds_are_safely_converted_for_macos_presence() {
+        assert_eq!(idle_seconds_to_ms(1.25), 1_250);
+        assert_eq!(idle_seconds_to_ms(-1.0), 0);
+        assert_eq!(idle_seconds_to_ms(f64::NAN), 0);
+        assert_eq!(idle_seconds_to_ms(f64::MAX), u32::MAX);
     }
 
     #[test]

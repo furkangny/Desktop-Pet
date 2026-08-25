@@ -33,7 +33,7 @@ const notifyPetHidden = async (): Promise<void> => {
   if (!desktop.isNative()) return;
   let granted = await isPermissionGranted();
   if (!granted) granted = await requestPermission() === 'granted';
-  if (granted) sendNotification({ title: 'Pet arka planda', body: 'Geri getirmek için Windows sistem tepsisindeki pet simgesine sağ tıklayıp “Peti göster”i seç.' });
+  if (granted) sendNotification({ title: 'Pet arka planda', body: 'Geri getirmek için menü çubuğu veya sistem tepsisindeki pet simgesinden “Peti göster”i seç.' });
 };
 
 const runPet = async (): Promise<void> => {

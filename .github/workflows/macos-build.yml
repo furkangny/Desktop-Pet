@@ -1,0 +1,91 @@
+name: macOS Universal Build
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/macos-build.yml"
+      - "package.json"
+      - "package-lock.json"
+      - "src/**"
+      - "src-tauri/**"
+      - "public/**"
+      - "index.html"
+      - "tsconfig.json"
+
+permissions:
+  contents: read
+
+jobs:
+  build-macos-universal:
+    runs-on: macos-latest
+    timeout-minutes: 45
+    env:
+      # Ad-hoc signing keeps downloaded Apple Silicon builds structurally signed.
+      # Public releases should replace this with Developer ID signing + notarization.
+      APPLE_SIGNING_IDENTITY: "-"
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Set up Rust targets
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-darwin,x86_64-apple-darwin
+
+      - name: Cache Rust build
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: "./src-tauri -> target"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run frontend checks
+        run: |
+          npm run typecheck
+          npm test
+
+      - name: Run Rust tests and check both macOS architectures
+        run: |
+          cargo test --manifest-path src-tauri/Cargo.toml
+          cargo check --manifest-path src-tauri/Cargo.toml --target aarch64-apple-darwin
+          cargo check --manifest-path src-tauri/Cargo.toml --target x86_64-apple-darwin
+
+      - name: Build Universal app and DMG
+        run: npm run build:macos
+
+      - name: Prepare downloadable artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          bundle_dir='src-tauri/target/universal-apple-darwin/release/bundle'
+          output_dir='macos-artifacts'
+          mkdir -p "$output_dir"
+          app_path=$(find "$bundle_dir/macos" -maxdepth 1 -name '*.app' -print -quit)
+          dmg_path=$(find "$bundle_dir/dmg" -maxdepth 1 -name '*.dmg' -print -quit)
+          test -n "$app_path"
+          test -n "$dmg_path"
+          ditto -c -k --sequesterRsrc --keepParent "$app_path" "$output_dir/Connected-Desktop-Pets-macOS-universal.app.zip"
+          cp "$dmg_path" "$output_dir/Connected-Desktop-Pets-macOS-universal.dmg"
+          shasum -a 256 "$output_dir"/* > "$output_dir/SHA256SUMS.txt"
+          codesign --verify --deep --strict --verbose=2 "$app_path"
+          file "$app_path/Contents/MacOS/connected-desktop-pets" | tee "$output_dir/BINARY-ARCHITECTURES.txt"
+          grep -q 'x86_64' "$output_dir/BINARY-ARCHITECTURES.txt"
+          grep -q 'arm64' "$output_dir/BINARY-ARCHITECTURES.txt"
+
+      - name: Upload Universal macOS package
+        uses: actions/upload-artifact@v4
+        with:
+          name: Connected-Desktop-Pets-macOS-universal
+          path: macos-artifacts/*
+          if-no-files-found: error
+          retention-days: 14

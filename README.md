@@ -1,7 +1,7 @@
 # Desktop Pet · Masaüstü Dostum
 
-A lively, local-first Windows desktop companion built with Tauri, TypeScript and Vite.
-Tauri, TypeScript ve Vite ile geliştirilmiş, yerel çalışan canlı bir Windows masaüstü dostu.
+A lively, local-first Windows and macOS desktop companion built with Tauri, TypeScript and Vite.
+Tauri, TypeScript ve Vite ile geliştirilmiş, Windows ve macOS'ta yerel çalışan canlı bir masaüstü dostu.
 
 [Türkçe](#türkçe) · [English](#english)
 
@@ -35,11 +35,11 @@ Uygulama bulut hesabı gerektirmez. Pet ayarları, konumu, notlar, hatırlatıc�
 - Yorulma, kızma, neşelenme, merak etme, gözlemleme ve irkilme durumları
 - Kedinin kendini temizlemesi ve petlerin kendiliğinden dinlenmesi gibi bağımsız davranışlar
 - Robot ve astronot için droid tarzı; kedi için doğal ses tepkileri
-- Peti gizleme ve Windows sistem tepsisinden yeniden gösterme
+- Peti gizleme ve Windows sistem tepsisi/macOS menü çubuğundan yeniden gösterme
 - Düzenlenebilir notlar, tek seferlik hatırlatıcılar ve tek seferlik/günlük alarmlar
 - Hatırlatıcıyı tamamlama veya erteleme
 - Ayrı ses kanalları ve kanal bazında ses seviyesi kontrolleri
-- Windows açılışında otomatik başlatma seçeneği
+- Windows veya macOS açılışında otomatik başlatma seçeneği
 - Pet adı, türü, boyutu, hareket yoğunluğu ve hareket modu ayarları
 - Konuşma balonunun hareket eden peti takip etmesi
 - Ayarların, organizatör verilerinin ve pet konumunun yerel olarak saklanması
@@ -59,6 +59,17 @@ Bu dosyalar v0.3.0 kaynak kodundan üretilmiştir. Uykuya giriş ve uyanış sı
 > [!NOTE]
 > Kurulum paketi kod imzalama sertifikasıyla imzalanmadıysa Windows SmartScreen “Bilinmeyen yayıncı” uyarısı gösterebilir.
 
+#### macOS
+
+Proje Apple Silicon ve Intel Mac'leri birlikte destekleyen Universal `.app` ve `.dmg` üretimine hazırdır. Her `main` push'unda ve manuel çalıştırmada **macOS Universal Build** GitHub Actions iş akışı gerçek bir macOS runner üzerinde testleri çalıştırır ve indirilebilir paketleri üretir:
+
+- `Connected-Desktop-Pets-macOS-universal.dmg`
+- `Connected-Desktop-Pets-macOS-universal.app.zip`
+- `SHA256SUMS.txt`
+- `BINARY-ARCHITECTURES.txt`
+
+Paketi indirmek için GitHub deposunda **Actions → macOS Universal Build → son başarılı çalışma → Artifacts** yolunu izleyin. CI paketi ad-hoc imzalıdır; bu, Apple Silicon uygulamasının yapısal olarak imzalı olmasını sağlar ancak Apple notarizasyonunun yerini tutmaz. İnternetten indirilen test paketini ilk kez açarken macOS **Privacy & Security** ekranından izin vermek gerekebilir. Genel son kullanıcı dağıtımı için `Developer ID Application` sertifikası ve Apple notarizasyonu eklenmelidir.
+
 ### Kullanım
 
 - Peti taşımak için üzerine basılı tutup sürükleyin.
@@ -66,7 +77,7 @@ Bu dosyalar v0.3.0 kaynak kodundan üretilmiştir. Uykuya giriş ve uyanış sı
 - Hızlı menüyü açmak için pete sağ tıklayın.
 - Dans, uyku, odaklanma, sabitleme ve gizleme komutlarını hızlı menüden kullanın.
 - Not, hatırlatıcı, alarm ve pet ayarları için **Kontrol merkezi**ni açın.
-- Gizlenen peti geri getirmek için Windows sistem tepsisindeki pet simgesine sağ tıklayıp **Peti göster** seçeneğini kullanın.
+- Gizlenen peti geri getirmek için Windows sistem tepsisi veya macOS menü çubuğundaki pet simgesinden **Peti göster** seçeneğini kullanın.
 
 ### Kaynak koddan geliştirme
 
@@ -74,8 +85,8 @@ Bu dosyalar v0.3.0 kaynak kodundan üretilmiştir. Uykuya giriş ve uyanış sı
 
 - Node.js 20 veya üzeri
 - Rust ve Cargo
-- Windows WebView2 Runtime
-- Microsoft C++ Build Tools — **Desktop development with C++** bileşeni
+- Windows'ta: WebView2 Runtime ve Microsoft C++ Build Tools — **Desktop development with C++** bileşeni
+- macOS'ta: macOS 10.15 veya üzeri ve Xcode Command Line Tools (`xcode-select --install`)
 
 #### Kurulum ve çalıştırma
 
@@ -92,7 +103,7 @@ Yalnızca tarayıcı arayüzünü çalıştırmak için:
 npm run dev:web
 ```
 
-Tarayıcı önizlemesi peti tarayıcı alanında tutar. Tauri sürümü ise şeffaf pet penceresini gerçek Windows masaüstü çalışma alanında hareket ettirir.
+Tarayıcı önizlemesi peti tarayıcı alanında tutar. Tauri sürümü ise şeffaf pet penceresini gerçek Windows veya macOS masaüstü çalışma alanında hareket ettirir.
 
 #### Test ve paketleme
 
@@ -104,6 +115,21 @@ npm run build
 ```
 
 `npm run build`, güncel Windows MSI ve NSIS kurulum paketlerini `src-tauri/target/release/bundle/` altında üretir.
+
+Universal macOS paketleri yalnız macOS üzerinde üretilebilir. Fiziksel Mac gerektirmeyen önerilen yöntem repodaki GitHub Actions iş akışıdır. Bir Mac üzerinde yerel üretim için:
+
+```bash
+rustup target add aarch64-apple-darwin x86_64-apple-darwin
+npm ci
+npm run typecheck
+npm test
+cargo test --manifest-path src-tauri/Cargo.toml
+cargo check --manifest-path src-tauri/Cargo.toml --target aarch64-apple-darwin
+cargo check --manifest-path src-tauri/Cargo.toml --target x86_64-apple-darwin
+APPLE_SIGNING_IDENTITY="-" npm run build:macos
+```
+
+Çıktılar `src-tauri/target/universal-apple-darwin/release/bundle/{macos,dmg}/` altında oluşur. macOS uygulaması gerçek imleç konumunu Tauri üzerinden, kullanıcı boşta kalma süresini CoreGraphics üzerinden okur. Mac'e özgü bu kod hedef koşullarıyla ayrılmıştır ve Windows derlemesine dahil edilmez.
 
 ### Teknoloji ve mimari
 
@@ -127,7 +153,7 @@ npm run build
 
 ### About the project
 
-Desktop Pet is an interactive virtual companion that lives on top of your Windows desktop. It roams across the usable screen area, follows the cursor, rests naturally, and responds to user interactions with character-specific animations and sounds.
+Desktop Pet is an interactive virtual companion that lives on top of your Windows or macOS desktop. It roams across the usable screen area, follows the cursor, rests naturally, and responds to user interactions with character-specific animations and sounds.
 
 No cloud account is required. Pet settings, position, notes, reminders, alarms and interaction memory are stored locally on the user's computer.
 
@@ -151,11 +177,11 @@ No cloud account is required. Pet settings, position, notes, reminders, alarms a
 - Tired, angry, happy, curious, observing and startled states
 - Autonomous behaviors such as cat grooming and spontaneous resting
 - Droid-style voices for the robot and astronaut; natural reactions for the cat
-- Hide the pet and restore it from the Windows system tray
+- Hide the pet and restore it from the Windows system tray or macOS menu bar
 - Editable notes, one-time reminders and one-time/daily alarms
 - Complete or snooze due reminders
 - Separate audio channels with per-channel volume controls
-- Optional launch at Windows startup
+- Optional launch at Windows or macOS startup
 - Configurable pet name, character, size, activity level and movement mode
 - Speech bubbles that follow the moving pet
 - Local persistence for settings, organizer data and pet position
@@ -175,6 +201,17 @@ These files were built from the v0.3.0 source. Sleep and wake actions do not dis
 > [!NOTE]
 > Windows SmartScreen may show an “Unknown publisher” warning when the installer has not been signed with a code-signing certificate.
 
+#### macOS
+
+The project builds Universal `.app` and `.dmg` packages that support Apple Silicon and Intel Macs. On every relevant push to `main`, and on manual runs, the **macOS Universal Build** GitHub Actions workflow runs the checks on a real macOS runner and creates:
+
+- `Connected-Desktop-Pets-macOS-universal.dmg`
+- `Connected-Desktop-Pets-macOS-universal.app.zip`
+- `SHA256SUMS.txt`
+- `BINARY-ARCHITECTURES.txt`
+
+Download them from **Actions → macOS Universal Build → latest successful run → Artifacts**. CI uses ad-hoc signing so the Apple Silicon app is structurally signed, but this is not Apple notarization. macOS may require approval under **Privacy & Security** the first time an Internet-downloaded test build is opened. Public end-user distribution should use a `Developer ID Application` certificate and Apple notarization.
+
 ### Usage
 
 - Press and drag the pet to move it.
@@ -182,7 +219,7 @@ These files were built from the v0.3.0 source. Sleep and wake actions do not dis
 - Right-click the pet to open the quick menu.
 - Use the quick menu for dance, sleep, focus, pin and hide commands.
 - Open the **Control Center** for notes, reminders, alarms and pet settings.
-- To restore a hidden pet, right-click its Windows system tray icon and select **Show pet**.
+- To restore a hidden pet, use its Windows system tray or macOS menu bar icon and select **Show pet**.
 
 ### Development from source
 
@@ -190,8 +227,8 @@ These files were built from the v0.3.0 source. Sleep and wake actions do not dis
 
 - Node.js 20 or newer
 - Rust and Cargo
-- Windows WebView2 Runtime
-- Microsoft C++ Build Tools with **Desktop development with C++**
+- On Windows: WebView2 Runtime and Microsoft C++ Build Tools with **Desktop development with C++**
+- On macOS: macOS 10.15 or newer and Xcode Command Line Tools (`xcode-select --install`)
 
 #### Install and run
 
@@ -208,7 +245,7 @@ For a browser-only UI preview:
 npm run dev:web
 ```
 
-The browser preview keeps the pet inside the viewport. The native Tauri build moves the transparent pet window across the actual Windows desktop work area.
+The browser preview keeps the pet inside the viewport. The native Tauri build moves the transparent pet window across the actual Windows or macOS desktop work area.
 
 #### Test and package
 
@@ -220,6 +257,21 @@ npm run build
 ```
 
 `npm run build` creates up-to-date Windows MSI and NSIS installers under `src-tauri/target/release/bundle/`.
+
+Universal macOS packages must be produced on macOS. The repository's GitHub Actions workflow is the recommended option when no physical Mac is available. For a local build on a Mac:
+
+```bash
+rustup target add aarch64-apple-darwin x86_64-apple-darwin
+npm ci
+npm run typecheck
+npm test
+cargo test --manifest-path src-tauri/Cargo.toml
+cargo check --manifest-path src-tauri/Cargo.toml --target aarch64-apple-darwin
+cargo check --manifest-path src-tauri/Cargo.toml --target x86_64-apple-darwin
+APPLE_SIGNING_IDENTITY="-" npm run build:macos
+```
+
+The outputs are written under `src-tauri/target/universal-apple-darwin/release/bundle/{macos,dmg}/`. On macOS the app reads the real cursor position through Tauri and the user idle duration through CoreGraphics. This platform-specific implementation is compile-time isolated and does not enter the Windows build.
 
 ### Technology and architecture
 
@@ -239,4 +291,4 @@ npm run build
 
 ---
 
-Version: **0.3.0** · Platform: **Windows x64**
+Version: **0.3.0** · Platforms: **Windows x64 · macOS Universal (Apple Silicon + Intel)**
